@@ -232,37 +232,37 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
 
     printArea.innerHTML = `
       <div class="print-header" style="font-family: 'Sarabun', sans-serif; text-align: center;">
-        <h1 style="font-size: 20pt; margin: 0; font-weight: bold; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 5px;">ใบรายงานคะแนนวิชาสุขศึกษาและพลศึกษา</h1>
-        <h2 style="font-size: 14pt; margin: 10px 0;">${activityName}</h2>
-        <p style="font-size: 12pt; font-weight: bold; color: #444;">${subtitle}</p>
+        <h1 style="font-size: 24pt; margin: 0; font-weight: bold; border-bottom: 3px solid #000; display: inline-block; padding-bottom: 10px;">ใบรายงานคะแนนวิชาสุขศึกษาและพลศึกษา</h1>
+        <h2 style="font-size: 18pt; margin: 15px 0 10px;">${activityName}</h2>
+        <p style="font-size: 14pt; font-weight: bold; color: #333;">${subtitle}</p>
       </div>
-      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-family: 'Sarabun', sans-serif; margin-top: 20px;">
+      <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; font-family: 'Sarabun', sans-serif; margin-top: 25px; font-size: 14pt;">
         <thead>
-          <tr style="background-color: #f1f5f9;">
-            ${mode === 'summary' ? '<th style="border: 1px solid #000; padding: 10px; width: 10%;">ห้อง</th>' : ''}
-            <th style="border: 1px solid #000; padding: 10px; width: 10%;">เลขที่</th>
-            <th style="border: 1px solid #000; padding: 10px; text-align: left;">ชื่อ-นามสกุล</th>
-            <th style="border: 1px solid #000; padding: 10px; width: 15%;">คะแนนรวม (20)</th>
-            ${mode === 'detailed' ? '<th style="border: 1px solid #000; padding: 10px; text-align: left; width: 40%;">หมายเหตุ / คำแนะนำจากครู</th>' : ''}
+          <tr style="background-color: #e2e8f0;">
+            ${mode === 'summary' ? '<th style="border: 1px solid #000; padding: 12px; width: 10%;">ห้อง</th>' : ''}
+            <th style="border: 1px solid #000; padding: 12px; width: 10%;">เลขที่</th>
+            <th style="border: 1px solid #000; padding: 12px; text-align: left;">ชื่อ-นามสกุล</th>
+            <th style="border: 1px solid #000; padding: 12px; width: 15%; background-color: #cbd5e1;">คะแนนรวม (20)</th>
+            ${mode === 'detailed' ? '<th style="border: 1px solid #000; padding: 12px; text-align: left; width: 40%;">หมายเหตุ / คำแนะนำจากครู</th>' : ''}
           </tr>
         </thead>
         <tbody>
-          ${dataList.map(s => `
-            <tr>
-              ${mode === 'summary' ? `<td style="border: 1px solid #000; padding: 8px; text-align: center;">${s.room.replace('Room ', '')}</td>` : ''}
-              <td style="border: 1px solid #000; padding: 8px; text-align: center;">${s.studentNumber}</td>
-              <td style="border: 1px solid #000; padding: 8px; text-align: left;">${s.name}</td>
-              <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 12pt;">${s.review?.totalScore ?? '-'}</td>
-              ${mode === 'detailed' ? `<td style="border: 1px solid #000; padding: 8px; text-align: left; font-size: 10pt; line-height: 1.2;">${s.review?.comment || '<span style="color:#aaa; font-style:italic;">รอการประเมิน</span>'}</td>` : ''}
+          ${dataList.map((s, index) => `
+            <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f8fafc'};">
+              ${mode === 'summary' ? `<td style="border: 1px solid #000; padding: 10px; text-align: center;">${s.room.replace('Room ', '')}</td>` : ''}
+              <td style="border: 1px solid #000; padding: 10px; text-align: center;">${s.studentNumber}</td>
+              <td style="border: 1px solid #000; padding: 10px; text-align: left; font-weight: 500;">${s.name}</td>
+              <td style="border: 1px solid #000; padding: 10px; text-align: center; font-weight: bold; font-size: 16pt; background-color: ${s.review?.totalScore ? '#f1f5f9' : 'transparent'};">${s.review?.totalScore ?? '-'}</td>
+              ${mode === 'detailed' ? `<td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 12pt; line-height: 1.4;">${s.review?.comment || '<span style="color:#aaa; font-style:italic;">รอการประเมิน</span>'}</td>` : ''}
             </tr>
           `).join('')}
         </tbody>
       </table>
       <div style="margin-top: 60px; text-align: right; padding-right: 60px; font-family: 'Sarabun', sans-serif;">
         <div style="display: inline-block; text-align: center;">
-          <p>ลงชื่อ.......................................................... คุณครูผู้สอน</p>
-          <p style="margin: 10px 0; font-weight: bold; font-size: 14pt;">(${teacherName})</p>
-          <p style="font-size: 10pt; color: #666;">วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p style="font-size: 14pt;">ลงชื่อ.......................................................... คุณครูผู้สอน</p>
+          <p style="margin: 15px 0; font-weight: bold; font-size: 16pt;">(${teacherName})</p>
+          <p style="font-size: 12pt; color: #666;">วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
       </div>
     `;
