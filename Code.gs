@@ -10,6 +10,8 @@
 
 // --- การตั้งค่า (Configuration) ---
 const CONFIG = {
+  // ID ของ Google Spreadsheet ที่เก็บข้อมูล (ตามที่ระบุมา)
+  SPREADSHEET_ID: "1Q8H3WkidkIfW_e5Voinf1Xro07fU3GPmGCJla4aq9tw",
   FOLDER_NAME: "Student_Videos_PE_Submission", // ชื่อโฟลเดอร์สำหรับเก็บวิดีโอ
   SHEET_SUBMISSIONS: "Submissions",            // ชื่อชีตเก็บข้อมูลการส่งงาน
   SHEET_TEACHERS: "Teachers"                   // ชื่อชีตเก็บข้อมูลครู
@@ -49,7 +51,6 @@ function doPost(e) {
         result = handleLogin(data);
         break;
       case 'get_rubric':
-        // สามารถเพิ่ม logic การดึงเกณฑ์จาก Sheet ได้ในอนาคต
         result = { success: true, data: [] }; 
         break;
       default:
@@ -69,7 +70,6 @@ function doPost(e) {
   }
 }
 
-// รองรับ GET request อย่างง่าย (สำหรับตรวจสอบว่า Script ทำงานอยู่)
 function doGet(e) {
   return ContentService.createTextOutput("PE Submission System API is running...");
 }
@@ -77,10 +77,25 @@ function doGet(e) {
 // --- ฟังก์ชันจัดการข้อมูล (Data Handlers) ---
 
 /**
+ * Helper เพื่อดึง Spreadsheet ที่ถูกต้อง
+ */
+function getSpreadsheet() {
+  try {
+    if (CONFIG.SPREADSHEET_ID) {
+      return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    }
+    return SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {
+    // Fallback กรณี ID ผิดหรือไม่มีสิทธิ์
+    return SpreadsheetApp.getActiveSpreadsheet();
+  }
+}
+
+/**
  * ดึงข้อมูลการส่งงานทั้งหมด
  */
 function getSubmissions() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.SHEET_SUBMISSIONS);
   
   if (!sheet) return { success: true, data: [] };
@@ -92,10 +107,8 @@ function getSubmissions() {
   const values = sheet.getRange(2, 1, lastRow - 1, 17).getValues();
   
   const submissions = values.map((row, index) => {
-    // row index + 2 เพราะเริ่มที่แถว 2
     const rowId = index + 2; 
     
-    // แปลงข้อมูลจากแถวเป็น Object
     return {
       rowId: rowId,
       timestamp: row[0],
@@ -105,7 +118,6 @@ function getSubmissions() {
       room: row[4],
       activityType: row[5],
       fileUrl: row[6],
-      // ข้อมูลการตรวจ (Rubric Review)
       review: {
         contentAccuracy: Number(row[8]) || 0,
         participation: Number(row[9]) || 0,
@@ -118,9 +130,8 @@ function getSubmissions() {
         gradedAt: row[16]
       }
     };
-  }).filter(item => item.name !== ""); // กรองแถวว่างออก
+  }).filter(item => item.name !== ""); 
 
-  // เรียงลำดับล่าสุดขึ้นก่อน (Optional)
   submissions.reverse();
 
   return { success: true, data: submissions };
@@ -130,15 +141,14 @@ function getSubmissions() {
  * อัปโหลดวิดีโอและบันทึกข้อมูล
  */
 function handleUpload(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   let sheet = ss.getSheetByName(CONFIG.SHEET_SUBMISSIONS);
   
   if (!sheet) {
-    setup(); // สร้างชีตถ้ายังไม่มี
+    setup(); 
     sheet = ss.getSheetByName(CONFIG.SHEET_SUBMISSIONS);
   }
 
-  // 1. บันทึกไฟล์ลง Google Drive
   let fileUrl = "";
   let fileId = "";
   
@@ -149,7 +159,6 @@ function handleUpload(data) {
       const blob = Utilities.newBlob(decodedData, data.mimeType, data.fileName);
       const file = folder.createFile(blob);
       
-      // ตั้งค่าการแชร์ให้ทุกคนที่มีลิงก์ดูได้ (เพื่อให้แสดงในแอปได้)
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       
       fileUrl = file.getUrl();
@@ -159,28 +168,26 @@ function handleUpload(data) {
     }
   }
 
-  // 2. บันทึกข้อมูลลง Sheet
   const timestamp = new Date();
   
-  // เรียงลำดับคอลัมน์ตามที่กำหนดไว้ใน getSubmissions
   const rowData = [
-    timestamp,           // 1. Timestamp
-    data.name,           // 2. Name
-    "'" + data.studentNumber, // 3. Student Number (ใส่ ' เพื่อบังคับเป็น Text)
-    data.grade,          // 4. Grade
-    data.room,           // 5. Room
-    data.activityType,   // 6. Activity Type
-    fileUrl,             // 7. File URL
-    fileId,              // 8. File ID
-    0,                   // 9. Content Accuracy
-    0,                   // 10. Participation
-    0,                   // 11. Presentation
-    0,                   // 12. Discipline
-    0,                   // 13. Total Score
-    0,                   // 14. Percentage
-    "",                  // 15. Comment
-    "Pending",           // 16. Status
-    ""                   // 17. Graded At
+    timestamp,           
+    data.name,           
+    "'" + data.studentNumber, 
+    data.grade,          
+    data.room,           
+    data.activityType,   
+    fileUrl,             
+    fileId,              
+    0,                   
+    0,                   
+    0,                   
+    0,                   
+    0,                   
+    0,                   
+    "",                  
+    "Pending",           
+    ""                   
   ];
 
   sheet.appendRow(rowData);
@@ -192,7 +199,7 @@ function handleUpload(data) {
  * บันทึกผลการตรวจงาน (Grade)
  */
 function handleGrade(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.SHEET_SUBMISSIONS);
   
   if (!sheet) return { success: false, message: "Sheet not found" };
@@ -200,12 +207,9 @@ function handleGrade(data) {
   const rowId = data.rowId;
   if (!rowId) return { success: false, message: "Invalid Row ID" };
 
-  // ตรวจสอบว่า Row ID อยู่ในขอบเขตข้อมูลจริงหรือไม่
   const lastRow = sheet.getLastRow();
   if (rowId > lastRow) return { success: false, message: "Row not found" };
 
-  // อัปเดตข้อมูลในคอลัมน์ 9-17 (Rubric Data)
-  // setValues รับ array 2 มิติ: [[val1, val2, ...]]
   const gradeData = [[
     data.contentAccuracy,
     data.participation,
@@ -215,11 +219,9 @@ function handleGrade(data) {
     data.percentage,
     data.comment,
     data.status,
-    new Date() // Graded At
+    new Date() 
   ]];
 
-  // getRange(row, column, numRows, numColumns)
-  // เริ่มที่คอลัมน์ 9 (Content Accuracy)
   sheet.getRange(rowId, 9, 1, 9).setValues(gradeData);
 
   return { success: true, message: "Grading saved" };
@@ -229,20 +231,17 @@ function handleGrade(data) {
  * ตรวจสอบการเข้าสู่ระบบครู
  */
 function handleLogin(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   let sheet = ss.getSheetByName(CONFIG.SHEET_TEACHERS);
   
-  // ถ้าไม่มีชีตครู ให้สร้างและเพิ่ม user default
   if (!sheet) {
     setup();
     sheet = ss.getSheetByName(CONFIG.SHEET_TEACHERS);
   }
 
   const values = sheet.getDataRange().getValues();
-  // ข้าม header แถวแรก
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
-    // row[0] = username, row[1] = pin, row[2] = name
     if (String(row[0]) === String(data.username) && String(row[1]) === String(data.pin)) {
       return { 
         success: true, 
@@ -274,13 +273,12 @@ function getOrCreateFolder(folderName) {
 // --- ฟังก์ชันติดตั้งครั้งแรก (Setup) ---
 
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   
   // 1. Setup Submissions Sheet
   let subSheet = ss.getSheetByName(CONFIG.SHEET_SUBMISSIONS);
   if (!subSheet) {
     subSheet = ss.insertSheet(CONFIG.SHEET_SUBMISSIONS);
-    // สร้าง Header
     const headers = [
       "Timestamp", "Name", "Student Number", "Grade", "Room", "Activity Type", 
       "File URL", "File ID", 
@@ -298,10 +296,9 @@ function setup() {
     const headers = ["Username", "PIN", "Name"];
     teacherSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     
-    // เพิ่ม Default Teacher
     teacherSheet.appendRow(["teacher", "1234", "คุณครูใจดี"]);
     teacherSheet.setFrozenRows(1);
   }
   
-  Logger.log("Setup completed successfully.");
+  Logger.log("Setup completed for Spreadsheet ID: " + CONFIG.SPREADSHEET_ID);
 }

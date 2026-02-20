@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const [teacherName, setTeacherName] = useState('');
   const [rubricCriteria, setRubricCriteria] = useState<any[]>([]);
   
-  const gasUrl = import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwt_PZNAxiM5j21McfSrUts-4y_vqoF1vb0fwRHQ3PEwG9jJPH1gM7eUw1PRaxhnDdB_Q/exec';
+  const gasUrl = import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwpzKmZC5cq8M-4KAgrxH_EXxzf9ts4tWUOxRIXzYwMQH0nkQ7uqDV0YOPKq3I2DYw9ig/exec';
 
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
