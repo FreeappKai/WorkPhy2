@@ -26,6 +26,8 @@ const App: React.FC = () => {
   
   const gasUrl = import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwt_PZNAxiM5j21McfSrUts-4y_vqoF1vb0fwRHQ3PEwG9jJPH1gM7eUw1PRaxhnDdB_Q/exec';
 
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
   const fetchAPI = async (action: string, data: any = {}) => {
     try {
       const response = await fetch(gasUrl, {
@@ -45,9 +47,12 @@ const App: React.FC = () => {
 
   const fetchSubmissions = useCallback(async (silent = false) => {
     if (!silent) setStatus(AppStatus.LOADING_DATA);
+    setConnectionError(null);
     const res = await fetchAPI('list');
     if (res && res.success) {
       setSubmissions(res.data || []);
+    } else {
+      setConnectionError("ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้ กรุณาตรวจสอบการตั้งค่า URL หรือลองใหม่อีกครั้ง");
     }
     setStatus(AppStatus.IDLE);
   }, []);
@@ -183,6 +188,13 @@ const App: React.FC = () => {
         </div>
 
         <Navigation currentView={currentView} setView={setCurrentView} />
+
+        {connectionError && (
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r shadow-md animate-pulse">
+            <p className="font-bold">⚠️ การเชื่อมต่อขัดข้อง</p>
+            <p>{connectionError}</p>
+          </div>
+        )}
 
         <main className="glass-morphism rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-12 min-h-[600px] transition-all duration-500 relative overflow-hidden">
           {currentView === AppView.STUDENT && (
