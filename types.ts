@@ -1,6 +1,7 @@
 
 export interface StudentSubmission {
   rowId?: number;
+  sheetName?: string;
   timestamp?: string;
   name: string;
   studentNumber: string;

@@ -115,7 +115,7 @@ const VideoGallery: React.FC<VideoGalleryProps> = ({ submissions }) => {
             
             return (
               <div 
-                key={sub.rowId || idx} 
+                key={`${sub.sheetName}-${sub.rowId}` || idx} 
                 className={`group relative bg-white rounded-[2.5rem] overflow-hidden shadow-xl border-4 transition-all hover:-translate-y-3 hover:shadow-2xl flex flex-col ${
                   isTopStar ? 'border-yellow-300 ring-4 ring-yellow-100' : 'border-pink-100 hover:border-pink-300'
                 }`}

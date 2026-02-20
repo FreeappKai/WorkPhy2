@@ -14,7 +14,7 @@ interface TeacherViewProps {
 }
 
 const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handleUpdateGrade, rubricCriteria, teacherName, onGenerateAIFeedback }) => {
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterText, setFilterText] = useState('');
   const [filterGrade, setFilterGrade] = useState('All');
   const [filterRoom, setFilterRoom] = useState('All');
@@ -66,14 +66,15 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
   );
 
   const startGrading = (sub: StudentSubmission) => {
-    setEditingId(sub.rowId!);
+    const uniqueId = `${sub.sheetName}-${sub.rowId}`;
+    setEditingId(uniqueId);
     setErrorMessage(null);
     setRubric(sub.review || {
       contentAccuracy: 0, participation: 0, presentation: 0, discipline: 0,
       totalScore: 0, percentage: 0, comment: '', status: 'Pending'
     });
     setTimeout(() => {
-        document.getElementById(`editor-${sub.rowId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById(`editor-${uniqueId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   };
 
@@ -91,9 +92,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
 
   // --- อัปเกรด AI ประเมินผลระดับเชี่ยวชาญ (Serious Pedagogical Assessment) ---
   const runAIScore = async (student: StudentSubmission) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash-latest',
       contents: `คุณคือคุณครูผู้เชี่ยวชาญด้านสุขศึกษาและพลศึกษา ระดับประถมศึกษา
 หน้าที่: ประเมินวิดีโอส่งงานของนักเรียน "${student.name}" ระดับชั้น ${student.grade} 
 กิจกรรม: ${student.activityType === 'Sports Day' ? 'ทักษะการเคลื่อนไหว (กีฬาสี)' : 'การแสดงออกเชิงสร้างสรรค์ (วันเด็ก)'}
@@ -125,7 +126,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
   };
 
   const handleAutoGrade = async () => {
-    const currentStudent = filteredSubmissions.find(s => s.rowId === editingId);
+    const currentStudent = filteredSubmissions.find(s => `${s.sheetName}-${s.rowId}` === editingId);
     if (!currentStudent) return;
     setIsAutoGrading(true);
     try {
@@ -174,10 +175,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
   };
 
   const handleSave = async () => {
-    const currentStudent = filteredSubmissions.find(s => s.rowId === editingId);
-    if (!editingId || !currentStudent) return;
+    const currentStudent = filteredSubmissions.find(s => `${s.sheetName}-${s.rowId}` === editingId);
+    if (!editingId || !currentStudent || !currentStudent.rowId) return;
     setSaving(true);
-    const success = await handleUpdateGrade(editingId, { ...rubric, status: 'Graded', activityType: currentStudent.activityType });
+    const success = await handleUpdateGrade(currentStudent.rowId, { ...rubric, status: 'Graded', activityType: currentStudent.activityType });
     if (success) { setEditingId(null); onUpdate(); }
     setSaving(false);
   };
@@ -381,8 +382,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
              <p className="text-7xl mb-6">🏜️</p>
              <p className="text-indigo-300 font-bold italic font-kids text-xl">ไม่พบข้อมูลงานที่หนูหาจ้า</p>
           </div>
-        ) : filteredSubmissions.map((sub) => (
-          <div key={sub.rowId} id={`editor-${sub.rowId}`} className={`p-6 rounded-[2.5rem] border-4 transition-all relative overflow-hidden ${sub.review?.status === 'Graded' ? 'border-green-100 bg-white' : 'bg-white border-indigo-100 shadow-xl'}`}>
+        ) : filteredSubmissions.map((sub) => {
+          const uniqueId = `${sub.sheetName}-${sub.rowId}`;
+          return (
+          <div key={uniqueId} id={`editor-${uniqueId}`} className={`p-6 rounded-[2.5rem] border-4 transition-all relative overflow-hidden ${sub.review?.status === 'Graded' ? 'border-green-100 bg-white' : 'bg-white border-indigo-100 shadow-xl'}`}>
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-md border-2 ${sub.activityType === 'Sports Day' ? 'bg-orange-100 border-orange-200' : 'bg-cyan-100 border-cyan-200'}`}>
@@ -401,7 +404,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
               </div>
             </div>
 
-            {editingId === sub.rowId && (
+            {editingId === uniqueId && (
               <div className="mt-6 p-6 bg-indigo-50 rounded-[2rem] border-4 border-indigo-100 shadow-inner animate-in slide-in-from-top duration-500">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                    <h4 className="text-lg font-kids text-indigo-700 flex items-center gap-2">📑 แบบประเมินรูบริกรายคน</h4>
@@ -428,7 +431,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
               </div>
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );

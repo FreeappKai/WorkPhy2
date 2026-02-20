@@ -102,7 +102,11 @@ const App: React.FC = () => {
   };
 
   const handleUpdateGrade = async (rowId: number, rubricData: any) => {
-    const res = await fetchAPI('grade', { rowId, ...rubricData });
+    // Find the submission to get the sheetName
+    const submission = submissions.find(s => s.rowId === rowId);
+    const sheetName = submission?.sheetName;
+    
+    const res = await fetchAPI('grade', { rowId, sheetName, ...rubricData });
     if (res && res.success) {
       fetchSubmissions(true);
       return true;
@@ -111,14 +115,14 @@ const App: React.FC = () => {
   };
 
   const generateAIFeedback = async (studentName: string, rubric: RubricReview) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `คุณเป็นคุณครูระดับประถมที่ใจดีมาก กำลังเขียนคำชมและคำแนะนำให้นักเรียนชื่อ "${studentName}" 
     ที่ได้คะแนนรวม ${rubric.totalScore}/20 จากการร่วมกิจกรรมในวิชาสุขศึกษาและพลศึกษา 
     เขียนสั้นๆ 2-3 ประโยคให้นักเรียนรู้สึกมีกำลังใจและภูมิใจในตัวเองเป็นภาษาไทย`;
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-latest',
         contents: prompt
       });
       return response.text || "ทำได้ดีมากจ๊ะ!";
