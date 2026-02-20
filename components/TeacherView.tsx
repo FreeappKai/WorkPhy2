@@ -94,7 +94,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
   const runAIScore = async (student: StudentSubmission) => {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-latest',
+      model: 'gemini-3-flash-preview',
       contents: `คุณคือคุณครูผู้เชี่ยวชาญด้านสุขศึกษาและพลศึกษา ระดับประถมศึกษา
 หน้าที่: ประเมินวิดีโอส่งงานของนักเรียน "${student.name}" ระดับชั้น ${student.grade} 
 กิจกรรม: ${student.activityType === 'Sports Day' ? 'ทักษะการเคลื่อนไหว (กีฬาสี)' : 'การแสดงออกเชิงสร้างสรรค์ (วันเด็ก)'}
@@ -251,8 +251,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
             <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f8fafc'};">
               ${mode === 'summary' ? `<td style="border: 1px solid #000; padding: 10px; text-align: center;">${s.room.replace('Room ', '')}</td>` : ''}
               <td style="border: 1px solid #000; padding: 10px; text-align: center;">${s.studentNumber}</td>
-              <td style="border: 1px solid #000; padding: 10px; text-align: left; font-weight: 500;">${s.name}</td>
-              <td style="border: 1px solid #000; padding: 10px; text-align: center; font-weight: bold; font-size: 16pt; background-color: ${s.review?.totalScore ? '#f1f5f9' : 'transparent'};">${s.review?.totalScore ?? '-'}</td>
+              <td style="border: 1px solid #000; padding: 10px; text-align: left; font-weight: bold; font-size: 16pt;">${s.name}</td>
+              <td style="border: 1px solid #000; padding: 10px; text-align: center; font-weight: bold; font-size: 18pt; background-color: ${s.review?.totalScore ? '#f1f5f9' : 'transparent'};">${s.review?.totalScore ?? '-'}</td>
               ${mode === 'detailed' ? `<td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 12pt; line-height: 1.4;">${s.review?.comment || '<span style="color:#aaa; font-style:italic;">รอการประเมิน</span>'}</td>` : ''}
             </tr>
           `).join('')}

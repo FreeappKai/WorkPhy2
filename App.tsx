@@ -122,7 +122,7 @@ const App: React.FC = () => {
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-latest',
+        model: 'gemini-3-flash-preview',
         contents: prompt
       });
       return response.text || "ทำได้ดีมากจ๊ะ!";
