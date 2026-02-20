@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FFD1DC">
+    <title>วิชาสุขศึกษาและพลศึกษา | ระบบส่งงานออนไลน์</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Sarabun:wght@400;700&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/index.css">
+</head>
+<body class="font-sans bg-pink-50 min-h-screen overflow-x-hidden">
+    <div class="fixed w-64 h-64 bg-white rounded-full blur-3xl opacity-40 top-10 left-10 -z-10"></div>
+    <div class="fixed w-80 h-80 bg-white rounded-full blur-3xl opacity-40 bottom-20 right-10 -z-10"></div>
+
+    <div id="root"></div>
+
+    <!-- Area for printing PDF (Hidden by default) -->
+    <div id="print-area" class="hidden print:block print:absolute print:top-0 print:left-0 print:w-full print:bg-white print:text-black print:p-0"></div>
+
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
