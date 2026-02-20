@@ -27,7 +27,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
 
   // States for Advanced PDF Export
   const [exportGrade, setExportGrade] = useState<string>('Prathom 5');
-  const [exportRoom, setExportRoom] = useState<string>('Room 1');
+  const [exportRoom, setExportRoom] = useState<string>('All');
   const [exportActivity, setExportActivity] = useState<string>('Sports Day');
 
   const [rubric, setRubric] = useState<RubricReview>({
@@ -187,27 +187,48 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
   
   const exportDetailedPDF = () => {
     const toExport = submissions.filter(s => 
-      s.grade === exportGrade && s.room === exportRoom && s.activityType === exportActivity
-    ).sort((a, b) => parseInt(a.studentNumber || '0') - parseInt(b.studentNumber || '0'));
-    if (toExport.length === 0) return alert("ไม่พบข้อมูลนักเรียนในห้องเรียนนี้จ้า");
-    renderOfficialPDF(toExport, `ระดับชั้น ${exportGrade === 'Prathom 5' ? 'ป.5' : 'ป.6'} | ${exportRoom.replace('Room ', 'ห้อง ')}`, 'detailed');
+      s.grade === exportGrade && 
+      (exportRoom === 'All' || s.room === exportRoom) && 
+      s.activityType === exportActivity
+    ).sort((a, b) => {
+        if (a.room !== b.room) return a.room.localeCompare(b.room);
+        return parseInt(a.studentNumber || '0') - parseInt(b.studentNumber || '0');
+    });
+
+    if (toExport.length === 0) return alert("ไม่พบข้อมูลนักเรียนในเงื่อนไขที่เลือกจ้า");
+    
+    const roomText = exportRoom === 'All' ? 'ทุกห้องเรียน' : exportRoom.replace('Room ', 'ห้อง ');
+    const filename = `รายงานละเอียด_${exportGrade}_${roomText}_${exportActivity}`;
+    
+    renderOfficialPDF(toExport, `ระดับชั้น ${exportGrade === 'Prathom 5' ? 'ป.5' : 'ป.6'} | ${roomText}`, 'detailed', filename);
   };
 
   const exportSummaryScorePDF = () => {
     const toExport = submissions.filter(s => 
-      s.grade === exportGrade && s.activityType === exportActivity
+      s.grade === exportGrade && 
+      (exportRoom === 'All' || s.room === exportRoom) &&
+      s.activityType === exportActivity
     ).sort((a, b) => {
       if (a.room !== b.room) return a.room.localeCompare(b.room);
       return parseInt(a.studentNumber || '0') - parseInt(b.studentNumber || '0');
     });
-    if (toExport.length === 0) return alert("ไม่พบข้อมูลนักเรียนในระดับชั้นที่เลือกจ้า");
-    renderOfficialPDF(toExport, `ใบสรุปคะแนนรวมกิจกรรม ระดับชั้น ${exportGrade === 'Prathom 5' ? 'ป.5' : 'ป.6'} (รายห้อง)`, 'summary');
+
+    if (toExport.length === 0) return alert("ไม่พบข้อมูลนักเรียนในเงื่อนไขที่เลือกจ้า");
+
+    const roomText = exportRoom === 'All' ? 'ทุกห้องเรียน' : exportRoom.replace('Room ', 'ห้อง ');
+    const filename = `สรุปคะแนน_${exportGrade}_${roomText}_${exportActivity}`;
+
+    renderOfficialPDF(toExport, `ใบสรุปคะแนนรวมกิจกรรม ระดับชั้น ${exportGrade === 'Prathom 5' ? 'ป.5' : 'ป.6'} (${roomText})`, 'summary', filename);
   };
 
-  const renderOfficialPDF = (dataList: StudentSubmission[], subtitle: string, mode: 'detailed' | 'summary') => {
+  const renderOfficialPDF = (dataList: StudentSubmission[], subtitle: string, mode: 'detailed' | 'summary', filename: string) => {
     const printArea = document.getElementById('print-area');
     if (!printArea) return;
     const activityName = exportActivity === 'Sports Day' ? 'กิจกรรมกีฬาสี 🏃' : 'กิจกรรมวันเด็ก 🎈';
+
+    // Set document title for PDF filename
+    const originalTitle = document.title;
+    document.title = filename;
 
     printArea.innerHTML = `
       <div class="print-header" style="font-family: 'Sarabun', sans-serif; text-align: center;">
@@ -215,7 +236,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
         <h2 style="font-size: 14pt; margin: 10px 0;">${activityName}</h2>
         <p style="font-size: 12pt; font-weight: bold; color: #444;">${subtitle}</p>
       </div>
-      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-family: 'Sarabun', sans-serif;">
+      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-family: 'Sarabun', sans-serif; margin-top: 20px;">
         <thead>
           <tr style="background-color: #f1f5f9;">
             ${mode === 'summary' ? '<th style="border: 1px solid #000; padding: 10px; width: 10%;">ห้อง</th>' : ''}
@@ -232,7 +253,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
               <td style="border: 1px solid #000; padding: 8px; text-align: center;">${s.studentNumber}</td>
               <td style="border: 1px solid #000; padding: 8px; text-align: left;">${s.name}</td>
               <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 12pt;">${s.review?.totalScore ?? '-'}</td>
-              ${mode === 'detailed' ? `<td style="border: 1px solid #000; padding: 8px; text-align: left; font-size: 10pt; line-height: 1.2;">${s.review?.comment || '<span style="color:#aaa italic">รอการประเมิน</span>'}</td>` : ''}
+              ${mode === 'detailed' ? `<td style="border: 1px solid #000; padding: 8px; text-align: left; font-size: 10pt; line-height: 1.2;">${s.review?.comment || '<span style="color:#aaa; font-style:italic;">รอการประเมิน</span>'}</td>` : ''}
             </tr>
           `).join('')}
         </tbody>
@@ -245,7 +266,13 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
         </div>
       </div>
     `;
+    
     window.print();
+    
+    // Restore title
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   const PointSelector = ({ label, icon, current, onSelect }: { label: string, icon: string, current: number, onSelect: (v: number) => void }) => (
@@ -309,6 +336,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
             <div>
               <label className="block text-xs font-bold text-indigo-600 mb-2 ml-2 uppercase">2. ห้องเรียน</label>
               <select value={exportRoom} onChange={(e) => setExportRoom(e.target.value)} className="w-full p-3 rounded-2xl bg-white border-2 border-indigo-100 font-bold text-indigo-800 outline-none">
+                <option value="All">ทุกห้อง (All Rooms)</option>
                 {[1,2,3,4].map(r => <option key={r} value={`Room ${r}`}>ห้อง {r}</option>)}
               </select>
             </div>
@@ -321,10 +349,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
             </div>
             <div className="flex flex-col gap-2 justify-end">
               <button onClick={exportDetailedPDF} className="w-full bg-indigo-600 text-white py-2.5 rounded-2xl font-bold text-xs hover:bg-indigo-700 shadow-md transition-all flex items-center justify-center gap-2">
-                พิมพ์รายห้อง (ละเอียด) 📄
+                พิมพ์/บันทึก PDF (ละเอียด) 📄
               </button>
               <button onClick={exportSummaryScorePDF} className="w-full bg-slate-700 text-white py-2.5 rounded-2xl font-bold text-xs hover:bg-slate-800 shadow-md transition-all flex items-center justify-center gap-2">
-                สรุปคะแนนระดับชั้น 📊
+                พิมพ์/บันทึก PDF (สรุป) 📊
               </button>
             </div>
           </div>
