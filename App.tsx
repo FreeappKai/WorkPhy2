@@ -11,6 +11,7 @@ import DashboardView from './components/DashboardView.tsx';
 import VideoGallery from './components/VideoGallery.tsx';
 import ResultChecker from './components/ResultChecker.tsx';
 import Navigation from './components/Navigation.tsx';
+import Toast from './components/Toast.tsx';
 import { AppStatus, AppView, StudentSubmission, RubricReview } from './types.ts';
 
 const App: React.FC = () => {
@@ -24,6 +25,12 @@ const App: React.FC = () => {
   const [teacherName, setTeacherName] = useState('');
   const [rubricCriteria, setRubricCriteria] = useState<any[]>([]);
   
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+  };
+
   const gasUrl = import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwpzKmZC5cq8M-4KAgrxH_EXxzf9ts4tWUOxRIXzYwMQH0nkQ7uqDV0YOPKq3I2DYw9ig/exec';
 
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -88,6 +95,7 @@ const App: React.FC = () => {
         if (res && res.success) {
           setStatus(AppStatus.SUCCESS);
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          showToast(`ส่งงานของ ${data.name} เรียบร้อยแล้วจ้า!`, 'success');
           fetchSubmissions(true);
         } else {
           setErrorMessage(res?.message || "เกิดข้อผิดพลาดในการอัปโหลด");
@@ -101,11 +109,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateGrade = async (rowId: number, rubricData: any) => {
-    // Find the submission to get the sheetName
-    const submission = submissions.find(s => s.rowId === rowId);
-    const sheetName = submission?.sheetName;
-    
+  const handleUpdateGrade = async (rowId: number, sheetName: string, rubricData: any) => {
     const res = await fetchAPI('grade', { rowId, sheetName, ...rubricData });
     if (res && res.success) {
       fetchSubmissions(true);
@@ -141,6 +145,7 @@ const App: React.FC = () => {
       setIsTeacher(true);
       setTeacherName(res.teacherName);
       setCurrentView(AppView.TEACHER);
+      showToast(`ยินดีต้อนรับคุณครู ${res.teacherName}!`, 'success');
     } else {
       setLoginError(res?.message || "ชื่อผู้ใช้หรือรหัส PIN ไม่ถูกต้องจ้า 🔐");
     }
@@ -148,6 +153,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-12">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       {/* Dynamic Header with Pastel Gradient */}
       <header className="w-full h-[60px] bg-white/40 backdrop-blur-md border-b-2 border-white shadow-sm flex items-center px-4 md:px-8 sticky top-0 z-[100]">
         <div className="max-w-6xl mx-auto w-full flex justify-between items-center">
@@ -238,6 +244,7 @@ const App: React.FC = () => {
               handleUpdateGrade={handleUpdateGrade}
               rubricCriteria={rubricCriteria}
               onGenerateAIFeedback={generateAIFeedback}
+              showToast={showToast}
             />
           )}
           {status === AppStatus.IDLE && currentView === AppView.DASHBOARD && <DashboardView submissions={submissions} />}

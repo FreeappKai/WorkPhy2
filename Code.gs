@@ -186,8 +186,10 @@ function handleUpload(data) {
     sheet = ss.getSheetByName(targetSheetName);
   }
 
+  // Ensure sheet has enough columns (up to Q = 17)
+  ensureColumns(sheet, 17);
+
   let fileUrl = "";
-  let fileId = "";
   
   if (data.fileData) {
     try {
@@ -199,7 +201,6 @@ function handleUpload(data) {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       
       fileUrl = file.getUrl();
-      fileId = file.getId();
     } catch (e) {
       return { success: false, message: "Upload failed: " + e.message };
     }
@@ -252,6 +253,9 @@ function handleGrade(data) {
   const lastRow = sheet.getLastRow();
   if (rowId > lastRow) return { success: false, message: "Row not found" };
 
+  // Ensure sheet has enough columns (up to Q = 17)
+  ensureColumns(sheet, 17);
+
   const gradeData = [[
     data.contentAccuracy,
     data.participation,
@@ -268,6 +272,16 @@ function handleGrade(data) {
   sheet.getRange(rowId, 9, 1, 9).setValues(gradeData);
 
   return { success: true, message: "Grading saved" };
+}
+
+/**
+ * Helper to ensure sheet has at least N columns
+ */
+function ensureColumns(sheet, minCols) {
+  const currentCols = sheet.getMaxColumns();
+  if (currentCols < minCols) {
+    sheet.insertColumnsAfter(currentCols, minCols - currentCols);
+  }
 }
 
 /**
