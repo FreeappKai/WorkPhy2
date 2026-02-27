@@ -15,7 +15,11 @@ const CONFIG = {
   FOLDER_NAME: "Student_Videos_PE_Submission", // ชื่อโฟลเดอร์สำหรับเก็บวิดีโอ
   SHEET_CHILDREN: "Submissions_Children",      // ชื่อชีตเก็บข้อมูลงานวันเด็ก
   SHEET_SPORTS: "Submissions_Sports",          // ชื่อชีตเก็บข้อมูลงานกีฬาสี
-  SHEET_TEACHERS: "Teachers"                   // ชื่อชีตเก็บข้อมูลครู
+  SHEET_TEACHERS: "Teachers",                  // ชื่อชีตเก็บข้อมูลครู
+  
+  // 🔔 การแจ้งเตือน Telegram (ใส่ข้อมูลของท่านที่นี่)
+  TELEGRAM_BOT_TOKEN: "", // ตัวอย่าง: "123456789:ABCdefGHIjklMNOpqRSTuvwXYZ"
+  TELEGRAM_CHAT_ID: ""    // ตัวอย่าง: "-1001234567890" หรือ ID ส่วนตัว
 };
 
 // --- ฟังก์ชันหลัก (Main Entry Point) ---
@@ -232,6 +236,16 @@ function handleUpload(data) {
 
   sheet.appendRow(rowData);
 
+  // 🔔 แจ้งเตือน Telegram เมื่อมีงานใหม่
+  const activityIcon = data.activityType === 'Sports Day' ? '🏃' : '🎈';
+  const msg = `📢 *มีงานเข้าจ้า!* ${activityIcon}\n\n` +
+              `🧑‍🎓 *นักเรียน:* ${data.name}\n` +
+              `🔢 *เลขที่:* ${data.studentNumber}\n` +
+              `🏠 *ห้อง:* ${data.room}\n` +
+              `📝 *กิจกรรม:* ${data.activityType}\n\n` +
+              `🔗 [คลิกเพื่อดูวิดีโอ](${fileUrl})`;
+  sendTelegramMessage(msg);
+
   return { success: true, message: "Upload successful" };
 }
 
@@ -270,6 +284,18 @@ function handleGrade(data) {
 
   // เริ่มที่คอลัมน์ 9 (I)
   sheet.getRange(rowId, 9, 1, 9).setValues(gradeData);
+
+  // 🔔 แจ้งเตือน Telegram เมื่อตรวจงานเสร็จ
+  try {
+    const studentName = sheet.getRange(rowId, 3).getValue(); // ดึงชื่อจาก Col C
+    const msg = `✅ *ตรวจงานเรียบร้อย!* ✨\n\n` +
+                `🧑‍🎓 *นักเรียน:* ${studentName}\n` +
+                `🏆 *คะแนน:* ${data.totalScore} / 20\n` +
+                `💬 *คอมเมนต์:* ${data.comment}`;
+    sendTelegramMessage(msg);
+  } catch (e) {
+    Logger.log("Error sending grade notification: " + e.message);
+  }
 
   return { success: true, message: "Grading saved" };
 }
@@ -324,6 +350,38 @@ function getOrCreateFolder(folderName) {
     return folders.next();
   } else {
     return DriveApp.createFolder(folderName);
+  }
+}
+
+/**
+ * ฟังก์ชันส่งข้อความเข้า Telegram
+ */
+function sendTelegramMessage(message) {
+  const token = CONFIG.TELEGRAM_BOT_TOKEN;
+  const chatId = CONFIG.TELEGRAM_CHAT_ID;
+  
+  if (!token || !chatId) {
+    Logger.log("Telegram Token or Chat ID not set.");
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const payload = {
+    chat_id: chatId,
+    text: message,
+    parse_mode: 'Markdown'
+  };
+  
+  try {
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    Logger.log("Failed to send Telegram message: " + e.toString());
   }
 }
 

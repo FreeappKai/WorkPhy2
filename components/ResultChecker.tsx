@@ -162,6 +162,71 @@ const ResultChecker: React.FC<ResultCheckerProps> = ({ submissions, refreshData 
           )}
         </div>
       )}
+
+      {/* Scoreboard Section */}
+      <div className="mt-16 animate-in slide-in-from-bottom duration-700">
+        <div className="text-center mb-8">
+          <span className="text-4xl">🏆</span>
+          <h3 className="text-2xl font-kids text-indigo-600 mt-2">ประกาศรายชื่อคนเก่ง (ส่งงานแล้ว)</h3>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Hall of Fame</p>
+        </div>
+        
+        <div className="bg-white rounded-[2.5rem] shadow-xl border-4 border-indigo-50 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-indigo-50 border-b-2 border-indigo-100">
+                  <th className="p-4 text-left text-indigo-600 font-bold text-sm uppercase tracking-wider pl-8">ชื่อ-นามสกุล</th>
+                  <th className="p-4 text-center text-indigo-600 font-bold text-sm uppercase tracking-wider">ห้อง</th>
+                  <th className="p-4 text-center text-indigo-600 font-bold text-sm uppercase tracking-wider">กิจกรรม</th>
+                  <th className="p-4 text-center text-indigo-600 font-bold text-sm uppercase tracking-wider pr-8">คะแนน</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-indigo-50">
+                {submissions
+                  .filter(s => s.review?.status === 'Graded')
+                  .sort((a, b) => (b.review?.totalScore || 0) - (a.review?.totalScore || 0))
+                  .map((s, index) => (
+                  <tr key={index} className="hover:bg-indigo-50/30 transition-colors">
+                    <td className="p-4 pl-8">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${index < 3 ? 'bg-yellow-400' : 'bg-slate-200'}`}>
+                          {index + 1}
+                        </div>
+                        <span className="font-bold text-slate-700">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="bg-white border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold text-indigo-400">
+                        {s.room.replace('Room ', '')}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="text-xl">{s.activityType === 'Sports Day' ? '🏃' : '🎈'}</span>
+                    </td>
+                    <td className="p-4 text-center pr-8">
+                      <span className={`text-lg font-black ${
+                        (s.review?.totalScore || 0) >= 18 ? 'text-green-500' : 
+                        (s.review?.totalScore || 0) >= 15 ? 'text-indigo-500' : 'text-orange-400'
+                      }`}>
+                        {s.review?.totalScore}
+                      </span>
+                      <span className="text-xs text-slate-300 font-bold ml-1">/20</span>
+                    </td>
+                  </tr>
+                ))}
+                {submissions.filter(s => s.review?.status === 'Graded').length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-12 text-center text-slate-400 font-bold italic">
+                      ยังไม่มีใครได้รับคะแนนเลยจ้า... รีบส่งงานกันนะ! 🚀
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
