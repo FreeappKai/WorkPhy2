@@ -352,47 +352,117 @@ function syncFromMaster() {
   }
 
   const data = masterSheet.getDataRange().getValues();
-  // สมมติแถวแรกเป็น Header
   if (data.length < 2) return { success: false, message: "ไม่มีข้อมูลในชีต Submissions" };
 
+  // ตรวจสอบ Header เพื่อดูว่าเป็นรูปแบบไหน (มี ID หรือไม่มี)
+  const header = data[0];
+  const hasIdColumn = header[0].toString().toLowerCase() === 'id';
+  
   let count = 0;
   
   // เตรียมชีตปลายทาง
   const childrenSheet = ss.getSheetByName(CONFIG.SHEET_CHILDREN) || ss.insertSheet(CONFIG.SHEET_CHILDREN);
   const sportsSheet = ss.getSheetByName(CONFIG.SHEET_SPORTS) || ss.insertSheet(CONFIG.SHEET_SPORTS);
   
-  // อ่าน ID ที่มีอยู่แล้วเพื่อป้องกันการซ้ำ
-  const getExistingIds = (sheet) => {
+  // ตรวจสอบ Header ของชีตปลายทาง ถ้ายังไม่มีให้สร้าง
+  const targetHeaders = [
+    "ID", "Timestamp", "Name", "Student Number", "Grade", "Room", "Activity Type", 
+    "URL", 
+    "Content Accuracy", "Participation", "Presentation", "Discipline", 
+    "Total Score", "Percentage", "Comment", "Status", "Graded At"
+  ];
+  
+  if (childrenSheet.getLastRow() === 0) childrenSheet.appendRow(targetHeaders);
+  if (sportsSheet.getLastRow() === 0) sportsSheet.appendRow(targetHeaders);
+
+  // อ่าน ID ที่มีอยู่แล้วเพื่อป้องกันการซ้ำ (ใช้ Name + Activity เป็น Key ถ้า ID ไม่ชัวร์)
+  const getExistingKeys = (sheet) => {
     const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return [];
-    // อ่าน Col A (ID) และ Col C (Name) เพื่อเช็คความซ้ำ
-    return sheet.getRange(2, 1, lastRow - 1, 3).getValues().map(r => r[0] + "_" + r[2]); 
+    if (lastRow < 2) return new Set();
+    // อ่าน Col C (Name) และ Col G (Activity)
+    const vals = sheet.getRange(2, 3, lastRow - 1, 5).getValues(); 
+    // Key = Name_Activity
+    return new Set(vals.map(r => r[0] + "_" + r[4])); 
   };
 
-  const existingChildren = new Set(getExistingIds(childrenSheet));
-  const existingSports = new Set(getExistingIds(sportsSheet));
+  const existingChildren = getExistingKeys(childrenSheet);
+  const existingSports = getExistingKeys(sportsSheet);
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const id = row[0];
-    const name = row[2];
-    const activityType = row[6]; // Col G
-    
-    const uniqueKey = id + "_" + name;
+    let rowData = {};
 
+    // Mapping Data based on Source Structure
+    if (hasIdColumn) {
+      // โครงสร้างแบบมี ID (เหมือน Destination)
+      rowData = {
+        timestamp: row[1],
+        name: row[2],
+        studentNumber: row[3],
+        grade: row[4],
+        room: row[5],
+        activityType: row[6],
+        url: row[7],
+        scores: row.slice(8) // I onwards
+      };
+    } else {
+      // โครงสร้างแบบใน Screenshot (A=Timestamp, F=Activity, H=FileID)
+      // A: Timestamp (0)
+      // B: Name (1)
+      // C: Student Number (2)
+      // D: Grade (3)
+      // E: Room (4)
+      // F: Activity Type (5)
+      // G: File URL (6)
+      // H: File ID (7) -- ข้าม
+      // I: Content Accuracy (8) ...
+      rowData = {
+        timestamp: row[0],
+        name: row[1],
+        studentNumber: row[2],
+        grade: row[3],
+        room: row[4],
+        activityType: row[5],
+        url: row[6],
+        scores: row.slice(8) // I onwards (Content Accuracy...)
+      };
+    }
+
+    const uniqueKey = rowData.name + "_" + rowData.activityType;
     let targetSheet = null;
     let existingSet = null;
 
-    if (activityType === 'Sports Day') {
+    if (rowData.activityType === 'Sports Day') {
       targetSheet = sportsSheet;
       existingSet = existingSports;
-    } else if (activityType === 'Children Day') {
+    } else if (rowData.activityType === 'Children Day') {
       targetSheet = childrenSheet;
       existingSet = existingChildren;
     }
 
     if (targetSheet && !existingSet.has(uniqueKey)) {
-      targetSheet.appendRow(row);
+      // สร้าง ID ใหม่ตามจำนวนแถวในเป้าหมาย
+      const newId = targetSheet.getLastRow(); 
+      
+      // สร้างแถวใหม่ตามโครงสร้าง Destination
+      const newRow = [
+        newId,
+        rowData.timestamp,
+        rowData.name,
+        rowData.studentNumber,
+        rowData.grade,
+        rowData.room,
+        rowData.activityType,
+        rowData.url,
+        ...rowData.scores // คะแนนต่างๆ
+      ];
+      
+      // เติมให้ครบจำนวนคอลัมน์ถ้าขาด
+      while (newRow.length < targetHeaders.length) {
+        newRow.push("");
+      }
+
+      targetSheet.appendRow(newRow);
       count++;
     }
   }
