@@ -354,6 +354,37 @@ const TeacherView: React.FC<TeacherViewProps> = ({ submissions, onUpdate, handle
             </button>
         </div>
 
+        {/* 🔄 Sync Data Button */}
+        <div className="flex justify-end mb-4">
+           <button 
+             onClick={async () => {
+               showToast('กำลังซิงค์ข้อมูลจากชีตหลัก...', 'info');
+               // Call API to sync
+               try {
+                 const gasUrl = import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwpzKmZC5cq8M-4KAgrxH_EXxzf9ts4tWUOxRIXzYwMQH0nkQ7uqDV0YOPKq3I2DYw9ig/exec';
+                 const res = await fetch(gasUrl, {
+                   method: 'POST',
+                   mode: 'cors',
+                   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                   body: JSON.stringify({ action: 'sync', data: {} })
+                 }).then(r => r.json());
+                 
+                 if (res && res.success) {
+                   showToast(res.message, 'success');
+                   onUpdate();
+                 } else {
+                   showToast(res.message || 'ซิงค์ข้อมูลไม่สำเร็จ', 'error');
+                 }
+               } catch (e) {
+                 showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+               }
+             }}
+             className="bg-slate-100 text-slate-500 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2"
+           >
+             <span>🔄</span> ดึงข้อมูลจาก Submissions (Sync)
+           </button>
+        </div>
+
         {/* 📋 Official PDF Export Control Center */}
         <div className="bg-indigo-50 p-6 rounded-[2.5rem] border-4 border-indigo-100 shadow-sm space-y-4">
           <h3 className="text-lg font-kids text-indigo-700 flex items-center gap-2">

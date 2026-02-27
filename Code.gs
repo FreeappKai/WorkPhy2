@@ -55,6 +55,9 @@ function doPost(e) {
       case 'login':
         result = handleLogin(data);
         break;
+      case 'sync':
+        result = syncFromMaster();
+        break;
       case 'get_rubric':
         result = { success: true, data: [] }; 
         break;
@@ -335,6 +338,66 @@ function handleLogin(data) {
   }
 
   return { success: false, message: "Invalid username or PIN" };
+}
+
+/**
+ * ดึงข้อมูลจากชีต Submissions (ถ้ามี) ไปยังชีตย่อย
+ */
+function syncFromMaster() {
+  const ss = getSpreadsheet();
+  const masterSheet = ss.getSheetByName("Submissions");
+  
+  if (!masterSheet) {
+    return { success: false, message: "ไม่พบชีต 'Submissions' (Master Sheet)" };
+  }
+
+  const data = masterSheet.getDataRange().getValues();
+  // สมมติแถวแรกเป็น Header
+  if (data.length < 2) return { success: false, message: "ไม่มีข้อมูลในชีต Submissions" };
+
+  let count = 0;
+  
+  // เตรียมชีตปลายทาง
+  const childrenSheet = ss.getSheetByName(CONFIG.SHEET_CHILDREN) || ss.insertSheet(CONFIG.SHEET_CHILDREN);
+  const sportsSheet = ss.getSheetByName(CONFIG.SHEET_SPORTS) || ss.insertSheet(CONFIG.SHEET_SPORTS);
+  
+  // อ่าน ID ที่มีอยู่แล้วเพื่อป้องกันการซ้ำ
+  const getExistingIds = (sheet) => {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+    // อ่าน Col A (ID) และ Col C (Name) เพื่อเช็คความซ้ำ
+    return sheet.getRange(2, 1, lastRow - 1, 3).getValues().map(r => r[0] + "_" + r[2]); 
+  };
+
+  const existingChildren = new Set(getExistingIds(childrenSheet));
+  const existingSports = new Set(getExistingIds(sportsSheet));
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const id = row[0];
+    const name = row[2];
+    const activityType = row[6]; // Col G
+    
+    const uniqueKey = id + "_" + name;
+
+    let targetSheet = null;
+    let existingSet = null;
+
+    if (activityType === 'Sports Day') {
+      targetSheet = sportsSheet;
+      existingSet = existingSports;
+    } else if (activityType === 'Children Day') {
+      targetSheet = childrenSheet;
+      existingSet = existingChildren;
+    }
+
+    if (targetSheet && !existingSet.has(uniqueKey)) {
+      targetSheet.appendRow(row);
+      count++;
+    }
+  }
+
+  return { success: true, message: `ซิงค์ข้อมูลสำเร็จ! ย้ายข้อมูลใหม่ ${count} รายการ` };
 }
 
 // --- ฟังก์ชันช่วยเหลือ (Helpers) ---
